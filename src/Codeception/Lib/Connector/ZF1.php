@@ -55,8 +55,10 @@ class ZF1 extends Client
         $zendRequest->setPost($request->getParameters());
         $zendRequest->setRawBody($request->getContent());
         $zendRequest->setRequestUri(str_replace('http://localhost','',$request->getUri()));
-        $zendRequest->setHeaders($request->getServer());
-        $_FILES  = $request->getFiles();
+        $zendRequest->setHeaders(
+            $this->getNormalizedHeadersUsing($request->getServer())
+        );
+        $_FILES = $request->getFiles();
         $_SERVER = array_merge($_SERVER, $request->getServer());
 
         $zendResponse = new \Zend_Controller_Response_HttpTestCase;
@@ -84,4 +86,33 @@ class ZF1 extends Client
     {
         return $this->zendRequest;
     }
+
+    private function getNormalizedHeadersUsing($values)
+    {
+        $fixedValues = $values;
+        foreach($values as $key => $value) {
+            if (substr($key, 0, 5) == "HTTP_") {
+                $key = str_replace(
+                        " ",
+                        "-",
+                        ucwords(strtolower(
+                            str_replace("_", " ", substr($key, 5))
+                        ))
+                );
+                $fixedValues[$key] = $value;
+            }
+            else {
+                $key = str_replace(
+                    " ",
+                    "-",
+                    ucwords(strtolower(
+                        str_replace("_", " ", $key)
+                    ))
+                );
+                $fixedValues[$key] = $value;
+            }
+        }
+        return $fixedValues;
+    }
+
 }
