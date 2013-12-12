@@ -73,9 +73,8 @@ class ZF1 extends Client
         $response = new Response(
             $zendResponse->getBody(),
             $zendResponse->getHttpResponseCode(),
-            $zendResponse->getHeaders()
+            $this->getKeyValueHeaders($zendResponse)
         );
-
         return $response;
     }
 
@@ -115,4 +114,23 @@ class ZF1 extends Client
         return $fixedValues;
     }
 
+    private function getKeyValueHeaders($zendResponse)
+    {
+        $headers = array();
+        foreach ($zendResponse->getRawHeaders() as $header) {
+            $headers[] = $header;
+        }
+        foreach ($zendResponse->getHeaders() as $header) {
+            $name = $header['name'];
+            $key  = strtolower($name);
+            if (array_key_exists($name, $headers)) {
+                if ($header['replace']) {
+                    $headers[$key] = $header['value'];
+                }
+            } else {
+                $headers[$key] = $header['value'];
+            }
+        }
+        return $headers;
+    }
 }
