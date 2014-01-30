@@ -23,7 +23,6 @@ class MySql extends Db
     public function select($column, $table, array &$criteria)
     {
         $where = $criteria ? "where %s" : '';
-        $table = $this->getQuotedName($table);
         $query = "select %s from %s $where";
         $params = [];
         foreach ($criteria as $k => $v) {
@@ -36,7 +35,12 @@ class MySql extends Db
         }
         $sparams = implode(' AND ', $params);
 
-        return sprintf($query, $column, $table, $sparams);
+        return sprintf(
+            $query,
+            $this->getQuotedName($column),
+            $this->getQuotedName($table),
+            $params
+        );
     }
 
 
