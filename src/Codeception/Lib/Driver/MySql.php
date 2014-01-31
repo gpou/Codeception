@@ -38,8 +38,14 @@ class MySql extends Db
         return sprintf($query, $column, $table, $params);
     }
 
+
     public function getQuotedName($name)
     {
-        return '`' . str_replace('.', '`.`', $name) . '`';
+        $reserved = array('count\(', 'count\\s+\(');
+        if (preg_match('/('.implode('|', $reserved).').*/USsi', trim($name))) {
+            return $name;
+        } else {
+            return '`' . $name . '`';
+        }
     }
 }
