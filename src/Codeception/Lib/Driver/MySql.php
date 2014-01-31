@@ -20,8 +20,37 @@ class MySql extends Db
         $this->dbh->exec('SET FOREIGN_KEY_CHECKS=1;');
     }
 
+    public function select($column, $table, array $criteria)
+    {
+        $where = $criteria ? "where %s" : '';
+        $query = "select %s from %s $where";
+        $params = array();
+        foreach ($criteria as $k => $v) {
+            $k = $this->getQuotedName($k);
+            if ($v === null) {
+                $params[] = "$k IS ?";
+            } else {
+                $params[] = "$k = ?";
+            }
+        }
+        $params = implode(' AND ', $params);
+
+        return sprintf(
+            $query,
+            $this->getQuotedName($column),
+            $this->getQuotedName($table),
+            $params
+        );
+    }
+
+
     public function getQuotedName($name)
     {
-        return '`' . str_replace('.', '`.`', $name) . '`';
+        $reserved = array('count\(', 'count\\s+\(');
+        if (preg_match('/('.implode('|', $reserved).').*/USsi', trim($name))) {
+            return $name;
+        } else {
+            return '`' . $name . '`';
+        }
     }
 }
