@@ -26,12 +26,8 @@ class ZF1 extends Client
     {
         $this->bootstrap = $bootstrap;
 
-        $this->front = $this->bootstrap
-            ->getBootstrap()
-            ->getResource('frontcontroller');
-        $this->front
-            ->throwExceptions(true)
-            ->returnResponse(false);
+        $this->front = $this->bootstrap->getBootstrap()->getResource('frontcontroller');
+        $this->front->returnResponse(false);
     }
 
     public function doRequest($request)
@@ -42,7 +38,7 @@ class ZF1 extends Client
         $redirector->setExit(false);
 
         // json helper should not exit
-        $json               = \Zend_Controller_Action_HelperBroker::getStaticHelper('json');
+        $json = \Zend_Controller_Action_HelperBroker::getStaticHelper('json');
         $json->suppressExit = true;
 
         $zendRequest = new \Zend_Controller_Request_HttpTestCase();
