@@ -29,12 +29,8 @@ class ZF1 extends Client
     {
         $this->bootstrap = $bootstrap;
 
-        $this->front = $this->bootstrap
-            ->getBootstrap()
-            ->getResource('frontcontroller');
-        $this->front
-            ->throwExceptions(true)
-            ->returnResponse(false);
+        $this->front = $this->bootstrap->getBootstrap()->getResource('frontcontroller');
+        $this->front->returnResponse(false);
     }
 
     public function doRequest($request)
