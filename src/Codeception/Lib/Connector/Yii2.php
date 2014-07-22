@@ -3,7 +3,6 @@
 namespace Codeception\Lib\Connector;
 
 use Yii;
-use yii\helpers\Security;
 use yii\web\Response as YiiResponse;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\BrowserKit\Client;
@@ -69,6 +68,11 @@ class Yii2 extends Client
 
         $app->getResponse()->on(YiiResponse::EVENT_AFTER_PREPARE, array($this, 'processResponse'));
 
+        // disabling logging. Logs are slowing test execution down
+        foreach ($app->log->targets as $target) {
+            $target->enabled = false;
+        }
+
         $this->headers    = array();
         $this->statusCode = null;
 
@@ -96,14 +100,14 @@ class Yii2 extends Client
         $cookies          = $response->getCookies();
 
         if ($request->enableCookieValidation) {
-            $validationKey = $request->getCookieValidationKey();
+            $validationKey = $request->cookieValidationKey;
         }
 
         foreach ($cookies as $cookie) {
             /** @var \yii\web\Cookie $cookie */
             $value = $cookie->value;
             if ($cookie->expire != 1 && isset($validationKey)) {
-                $value = Security::hashData(serialize($value), $validationKey);
+                $value = Yii::$app->security->hashData(serialize($value), $validationKey);
             }
             $c = new Cookie($cookie->name, $value, $cookie->expire, $cookie->path, $cookie->domain, $cookie->secure, $cookie->httpOnly);
             $this->getCookieJar()->set($c);

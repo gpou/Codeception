@@ -14,24 +14,25 @@ use Codeception\PHPUnit\Constraint\WebDriverNot as WebDriverConstraintNot;
 use Codeception\PHPUnit\Constraint\Page as PageConstraint;
 
 /**
- * New generation Selenium2 module.
- * *Included in Codeception 1.7.0*
+ * New generation Selenium WebDriver module.
  *
- * ## Installation
+ * ## Selenium Installation
  *
- * Download [Selenium2 WebDriver](http://code.google.com/p/selenium/downloads/list?q=selenium-server-standalone-2)
+ * Download [Selenium Server](http://docs.seleniumhq.org/download/)
  * Launch the daemon: `java -jar selenium-server-standalone-2.xx.xxx.jar`
  *
- * ## Migration Guide (Selenium2 -> WebDriver)
+ * ## PhantomJS Installation
  *
- * * `wait` method accepts seconds instead of milliseconds. All waits use second as parameter.
+ * PhantomJS is headless alternative to Selenium Server.
  *
+ * * Download [PhantomJS](http://phantomjs.org/download.html)
+ * * Run PhantomJS in webdriver mode `phantomjs --webdriver=4444`
  *
  *
  * ## Status
  *
  * * Maintainer: **davert**
- * * Stability: **beta**
+ * * Stability: **stable**
  * * Contact: davert.codecept@mailican.com
  * * Based on [facebook php-webdriver](https://github.com/facebook/php-webdriver)
  *
@@ -39,12 +40,12 @@ use Codeception\PHPUnit\Constraint\Page as PageConstraint;
  *
  * * url *required* - start url for your app
  * * browser *required* - browser that would be launched
- * * host  - Selenium server host (localhost by default)
+ * * host  - Selenium server host (127.0.0.1 by default)
  * * port - Selenium server port (4444 by default)
- * * restart - set to false to share browser sesssion between tests, or set to true (by default) to create a session per test
+ * * restart - set to false (default) to share browser sesssion between tests, or set to true to create a session per test
  * * window_size - initial window size. Values `maximize` or dimensions in format `640x480` are accepted.
- * * clear_cookies - set to false to keep cookies (not default), or set to true to delete all cookies between cases.
- * * wait - set the implicit wait (5 secs) by default.
+ * * clear_cookies - set to false to keep cookies, or set to true (default) to delete all cookies between cases.
+ * * wait - set the implicit wait (0 secs) by default.
  * * capabilities - sets Selenium2 [desired capabilities](http://code.google.com/p/selenium/wiki/DesiredCapabilities). Should be a key-value array.
  *
  * ### Example (`acceptance.suite.yml`)
@@ -60,9 +61,10 @@ use Codeception\PHPUnit\Constraint\Page as PageConstraint;
  *              capabilities:
  *                  unexpectedAlertBehaviour: 'accept'
  *
+ * ## Migration Guide (Selenium2 -> WebDriver)
  *
- * Class WebDriver
- * @package Codeception\Module
+ * * `wait` method accepts seconds instead of milliseconds. All waits use second as parameter.
+ *
  */
 class WebDriver extends \Codeception\Module implements WebInterface, RemoteInterface, MultiSessionInterface {
 
@@ -131,8 +133,9 @@ class WebDriver extends \Codeception\Module implements WebInterface, RemoteInter
 
     public function _failed(\Codeception\TestCase $test, $fail)
     {
-        $this->_saveScreenshot(codecept_log_dir(basename(\Codeception\TestCase::getTestFileName($test) . '.fail.png')));
-        $this->debug("Screenshot was saved into 'log' dir");
+        $filename = str_replace(['::','\\','/'], ['.','',''], \Codeception\TestCase::getTestSignature($test)).'.fail.png';
+        $this->_saveScreenshot(codecept_output_dir($filename));
+        $this->debug("Screenshot was saved into '_output' dir");
     }
 
     public function _afterSuite()
@@ -195,13 +198,13 @@ class WebDriver extends \Codeception\Module implements WebInterface, RemoteInter
     }
 
     /**
-     * Makes a screenshot of current window and saves it to `tests/_log/debug`.
+     * Makes a screenshot of current window and saves it to `tests/_output/debug`.
      *
      * ``` php
      * <?php
      * $I->amOnPage('/user/edit');
      * $I->makeScreenshot('edit_page');
-     * // saved to: tests/_log/debug/edit_page.png
+     * // saved to: tests/_output/debug/edit_page.png
      * ?>
      * ```
      *
@@ -287,7 +290,7 @@ class WebDriver extends \Codeception\Module implements WebInterface, RemoteInter
         if (!$selector) {
             return $this->assertPageContains($text);
         }
-        $nodes = $this->match($this->webDriver, $selector);
+        $nodes = $this->matchVisible($selector);
         $this->assertNodesContain($text, $nodes, $selector);
     }
 
@@ -296,8 +299,36 @@ class WebDriver extends \Codeception\Module implements WebInterface, RemoteInter
         if (!$selector) {
             return $this->assertPageNotContains($text);
         }
-        $nodes = $this->match($this->webDriver, $selector);
+        $nodes = $this->matchVisible($selector);
         $this->assertNodesNotContain($text, $nodes, $selector);
+    }
+
+    /**
+     * Checks that page source contains text.
+     *
+     * ```php
+     * <?php
+     * $I->seeInPageSource('<link rel="apple-touch-icon"');
+     * ```
+     *
+     * @param $text
+     */
+    public function seeInPageSource($text)
+    {
+        $this->assertThat($this->webDriver->getPageSource(),
+            new PageConstraint($text, $this->_getCurrentUri()), ''
+        );
+    }
+
+    /**
+     * Checks that page source does not contain text.
+     *
+     * @param $text
+     */    public function dontSeeInPageSource($text)
+    {
+        $this->assertThatItsNot($this->webDriver->getPageSource(),
+            new PageConstraint($text, $this->_getCurrentUri()), ''
+        );
     }
 
     public function click($link, $context = null)
@@ -739,7 +770,21 @@ class WebDriver extends \Codeception\Module implements WebInterface, RemoteInter
         $el = $this->findField($field);
         // in order to be compatible on different OS
         $filePath = realpath(\Codeception\Configuration::dataDir().$filename);
+        // in order for remote upload to be enabled
+        $el->setFileDetector(new \LocalFileDetector);
         $el->sendKeys($filePath);
+    }
+
+    /**
+     * @return string
+     */
+    public function getVisibleText() {
+        $els = $this->webDriver->findElements(\WebDriverBy::cssSelector('body'));
+        if (count($els)) {
+            return $els[0]->getText();
+        }
+
+        return "";
     }
 
     public function grabTextFrom($cssOrXPathOrRegex)
@@ -800,11 +845,7 @@ class WebDriver extends \Codeception\Module implements WebInterface, RemoteInter
      */
     public function seeElement($selector, $attributes = array())
     {
-        $els = array_filter($this->match($this->webDriver, $selector),
-            function (\WebDriverElement $el) use ($attributes) {
-                return $el->isDisplayed();
-            }
-        );
+        $els = $this->matchVisible($selector);
         $els = $this->filterByAttributes($els, $attributes);
         $this->assertNotEmpty($els);
     }
@@ -824,12 +865,7 @@ class WebDriver extends \Codeception\Module implements WebInterface, RemoteInter
      */
     public function dontSeeElement($selector, $attributes = array())
     {
-        $els = array_filter(
-            $this->match($this->webDriver, $selector),
-            function (\WebDriverElement $el) {
-                return $el->isDisplayed();
-            }
-        );
+        $els = $this->matchVisible($selector);
         $els = $this->filterByAttributes($els, $attributes);
         $this->assertEmpty($els);
     }
@@ -1393,6 +1429,14 @@ class WebDriver extends \Codeception\Module implements WebInterface, RemoteInter
 
     /**
      * Executes custom JavaScript
+     * 
+     * In this example we will use jQuery to get a value and assign this value to a variable.
+     *
+     * ```php
+     * <?php
+     * $myVar = $I->executeJS('return $("#myField").val()');
+     * ?>
+     * ```
      *
      * @param $script
      * @return mixed
@@ -1625,7 +1669,7 @@ class WebDriver extends \Codeception\Module implements WebInterface, RemoteInter
     protected function assertPageContains($needle, $message = '')
     {
         $this->assertThat(
-            htmlspecialchars_decode($this->webDriver->getPageSource()),
+            htmlspecialchars_decode($this->getVisibleText()),
             new PageConstraint($needle, $this->_getCurrentUri()),
             $message
         );
@@ -1634,7 +1678,7 @@ class WebDriver extends \Codeception\Module implements WebInterface, RemoteInter
     protected function assertPageNotContains($needle, $message = '')
     {
         $this->assertThatItsNot(
-            htmlspecialchars_decode($this->webDriver->getPageSource()),
+            htmlspecialchars_decode($this->getVisibleText()),
             new PageConstraint($needle, $this->_getCurrentUri()),
             $message
         );
@@ -1713,5 +1757,19 @@ class WebDriver extends \Codeception\Module implements WebInterface, RemoteInter
         }
 
         throw new ElementNotFound($field, "Field by name, label, CSS or XPath");
+    }
+
+    /**
+     * @param $selector
+     * @return array
+     */
+    protected function matchVisible($selector)
+    {
+        $nodes = array_filter($this->match($this->webDriver, $selector),
+            function (\WebDriverElement $el) {
+                return $el->isDisplayed();
+            }
+        );
+        return $nodes;
     }
 }

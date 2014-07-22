@@ -1,6 +1,7 @@
 <?php
 namespace Codeception\Module;
 
+use Codeception\Exception\ModuleConfig;
 use Codeception\Lib\Framework;
 use Codeception\Lib\Interfaces\ActiveRecord;
 use Codeception\Subscriber\ErrorHandler;
@@ -51,6 +52,7 @@ class Laravel4 extends Framework implements ActiveRecord
     public $kernel;
 
     protected $config = [];
+    protected $startFile;
 
     public function __construct($config = null)
     {
@@ -67,7 +69,7 @@ class Laravel4 extends Framework implements ActiveRecord
 
     public function _initialize()
     {
-        $projectDir = \Codeception\Configuration::projectDir();
+        $projectDir = explode('workbench', \Codeception\Configuration::projectDir())[0];
         require $projectDir .  'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
 
         \Illuminate\Support\ClassLoader::register();
@@ -75,17 +77,10 @@ class Laravel4 extends Framework implements ActiveRecord
         if (is_dir($workbench = $projectDir . 'workbench')) {
             \Illuminate\Workbench\Starter::start($workbench);
         }
-        $unitTesting = true;
-        $testEnvironment = 'testing';
-
-        $startFile = $projectDir . $this->config['start'];
-        if (!file_exists($startFile)) {
+        $this->startFile = $projectDir . $this->config['start'];
+        if (!file_exists($this->startFile)) {
             throw new ModuleConfig($this, "Laravel start.php file not found in $startFile.\nPlease provide a valid path to it using 'start' config param. ");
         }
-        $app = require $startFile;
-        $app->boot();
-        $this->kernel = $app;
-
         $this->revertErrorHandler();
     }
 
@@ -97,6 +92,13 @@ class Laravel4 extends Framework implements ActiveRecord
 
     public function _before(\Codeception\TestCase $test)
     {
+        $unitTesting = true;
+        $testEnvironment = 'testing';
+        
+        $app = require $this->startFile;
+        $app->boot();
+        $this->kernel = $app;
+
         $this->client = new Client($this->kernel);
         $this->client->followRedirects(true);
         if ($this->config['cleanup'] and $this->expectedLaravelVersion(4.1)) {
@@ -284,7 +286,9 @@ class Laravel4 extends Framework implements ActiveRecord
      * Checks that record does not exist in database.
      *
      * ``` php
+     * <?php
      * $I->dontSeeRecord('users', array('name' => 'davert'));
+     * ?>
      * ```
      *
      * @param $model
@@ -303,7 +307,9 @@ class Laravel4 extends Framework implements ActiveRecord
      * Retrieves record from database
      *
      * ``` php
+     * <?php
      * $category = $I->grabRecord('users', array('name' => 'davert'));
+     * ?>
      * ```
      *
      * @param $model

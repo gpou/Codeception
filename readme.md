@@ -9,14 +9,20 @@ Powered by PHPUnit 3.7.
 
 | release |  branch  |  status  |
 | ------- | -------- | -------- |
-| **Stable** | **1.7** | [![Build Status](https://secure.travis-ci.org/Codeception/Codeception.png?branch=1.7)](http://travis-ci.org/Codeception/Codeception)
-| **Current** | **1.8** | [![Build Status](https://secure.travis-ci.org/Codeception/Codeception.png?branch=1.8)](http://travis-ci.org/Codeception/Codeception) [![Dependencies Status](https://depending.in/Codeception/Codeception.png)](http://depending.in/Codeception/Codeception)
+| **Stable** | **1.8** | [![Build Status](https://secure.travis-ci.org/Codeception/Codeception.png?branch=1.8)](http://travis-ci.org/Codeception/Codeception) [![Dependencies Status](https://depending.in/Codeception/Codeception.png)](http://depending.in/Codeception/Codeception)
+| **Current** | **2.0** | [![Build Status](https://secure.travis-ci.org/Codeception/Codeception.png?branch=2.0)](http://travis-ci.org/Codeception/Codeception)
 | **Edge** | **master** | [![Build Status](https://secure.travis-ci.org/Codeception/Codeception.png?branch=master)](http://travis-ci.org/Codeception/Codeception) [![Dependencies Status](https://depending.in/Codeception/Codeception.png)](http://depending.in/Codeception/Codeception)
 
 #### Contributions
 
+##### Code
+
 **Bugfixes should be sent to to current stable branch, which is the same as major version number.**
 Breaking features and major improvements should be sent into `master`. When you send PRs to master, they will be added to release cycle only when the next stable branch is started.
+
+##### Documentation
+
+The documentation for each module is directly generated from the corresponding docblock which can be found in each module (src/Module/Codeception/*.php).
 
 ### At a Glance
 
@@ -29,7 +35,7 @@ Run tests and see what actions were taken and what results were seen.
 ``` php
 <?php
 
-$I = new TestGuy($scenario);
+$I = new FunctionalTester($scenario);
 $I->wantTo('create wiki page');
 $I->amOnPage('/');
 $I->click('Pages');
@@ -83,16 +89,10 @@ codecept bootstrap
 
 this will create a default directory structure and default test suites
 
-```
-codecept build
-```
-
-This will generate Guy-classes, in order to make autocomplete work.
-
 See Documentation for more information.
 
 ### License
 MIT
 
 (c) Michael Bodnarchuk "Davert"
-2011-2013
+2011-2014

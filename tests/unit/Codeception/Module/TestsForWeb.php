@@ -128,6 +128,19 @@ abstract class TestsForWeb extends \PHPUnit_Framework_TestCase
         $this->assertEquals('agree', $form['terms']);
     }
 
+    /**
+     * @group testCheckboxArray
+     * @Issue https://github.com/Codeception/Codeception/pull/1145
+     */
+    public function testCheckboxArray()
+    {
+        $this->module->amOnPage('/form/checkbox_array');
+        $this->module->checkOption('#id2');
+        $this->module->click('Submit');
+        $form = data::get('form');
+        $this->assertEquals('second', reset($form['field']));
+    }
+
     public function testSelectByCss()
     {
         $this->module->amOnPage('/form/select');
@@ -164,12 +177,31 @@ abstract class TestsForWeb extends \PHPUnit_Framework_TestCase
         $form = data::get('form');
         $this->assertEquals('adult', $form['age']);
     }
-    
+
     public function testSeeSelectedOption()
     {
         $this->module->amOnPage('/form/select');
         $this->module->seeOptionIsSelected('#age', '60-100');
         $this->module->dontSeeOptionIsSelected('#age', '100-210');
+    }
+
+    public function testSeeSelectedOptionForRadioButton()
+    {
+        $this->module->amOnPage('/form/example6');
+        $this->module->seeOptionIsSelected('input[name=frequency]', 'hour');
+        $this->module->dontSeeOptionIsSelected('input[name=frequency]', 'week');
+    }
+
+    /**
+     * @group testSubmitSeveralSubmitsForm
+     * @Issue https://github.com/Codeception/Codeception/issues/1183
+     */
+    public function testSubmitSeveralSubmitsForm()
+    {
+        $this->module->amOnPage('/form/example8');
+        $this->module->click('form button[value="second"]');
+        $form = data::get('form');
+        $this->assertEquals('second', $form['submit']);
     }
 
     public function testSelectMultipleOptionsByText()
@@ -564,6 +596,90 @@ abstract class TestsForWeb extends \PHPUnit_Framework_TestCase
         $this->module->amOnPage('/info');
         $this->module->see('Kill & Destroy');
         $this->module->see('Kill & Destroy','div');
+    }
+
+    /**
+     * https://github.com/Codeception/Codeception/issues/1091
+     */
+    public function testExample4()
+    {
+        $this->module->amOnPage('/form/example4');
+        $this->module->click(['css' => '#register button[type="submit"]']);
+
+        $this->module->amOnPage('/form/example4');
+        $this->module->click('#register button[type="submit"]');
+    }
+
+    /**
+     * https://github.com/Codeception/Codeception/issues/1098
+     */
+    public function testExample5()
+    {
+        $this->module->amOnPage('/form/example5');
+        $this->module->fillField('username', 'John');
+        $this->module->fillField('password', '1234');
+        $this->module->click('Login');
+        $this->module->seeCurrentUrlEquals('/form/example5?username=John&password=1234');
+    }
+
+    public function testExample5WithSubmitForm()
+    {
+        $this->module->amOnPage('/form/example5');
+        $this->module->submitForm('form', ['username' => 'John', 'password' => '1234']);
+        $this->module->seeCurrentUrlEquals('/form/example5?username=John&password=1234');
+    }
+
+    /**
+     * @Issue https://github.com/Codeception/Codeception/issues/1212
+     */
+    public function testExample9()
+    {
+        $this->module->amOnPage('/form/example9');
+        $this->module->attachFile('form[name=package_csv_form] input[name=xls_file]', 'app/avatar.jpg');
+        $this->module->click('Upload packages', 'form[name=package_csv_form]');
+        $this->assertNotEmpty(data::get('files'));
+        $files = data::get('files');
+        $this->assertArrayHasKey('xls_file', $files);
+        $form = data::get('form');
+        codecept_debug($form);
+        $this->assertArrayHasKey('submit', $form);
+        $this->assertArrayHasKey('MAX_FILE_SIZE', $form);
+        $this->assertArrayHasKey('form_name', $form);
+
+    }
+
+
+    public function testSubmitForm() {
+        $this->module->amOnPage('/form/complex');
+        $this->module->submitForm('form', array(
+                'name' => 'Davert',
+                'description' => 'Is Codeception maintainer'
+        ));
+        $form = data::get('form');
+        $this->assertEquals('Davert', $form['name']);
+        $this->assertEquals('Is Codeception maintainer', $form['description']);
+//        $this->assertFalse(isset($form['disabled_fieldset']));
+//        $this->assertFalse(isset($form['disabled_field']));
+        $this->assertEquals('kill_all', $form['action']);
+    }
+
+    public function testSubmitFormWithoutButton() {
+        $this->module->amOnPage('/form/empty');
+        $this->module->submitForm('form', array(
+                'text' => 'Hello!'
+        ));
+        $form = data::get('form');
+        $this->assertEquals('Hello!', $form['text']);
+    }
+
+    /**
+     * @issue #1180
+     */
+    public function testClickLinkWithInnerSpan()
+    {
+        $this->module->amOnPage('/form/example7');
+        $this->module->click("Buy Chocolate Bar");
+        $this->module->seeCurrentUrlEquals('/');
     }
     
     protected function shouldFail()
