@@ -33,7 +33,6 @@ class ZF1 extends Client
             ->getBootstrap()
             ->getResource('frontcontroller');
         $this->front
-            ->throwExceptions(true)
             ->returnResponse(false);
     }
 

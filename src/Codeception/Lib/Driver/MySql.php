@@ -35,11 +35,21 @@ class MySql extends Db
         }
         $params = implode(' AND ', $params);
 
-        return sprintf($query, $column, $table, $params);
+        return sprintf(
+            $query,
+            $this->getQuotedName($column),
+            $this->getQuotedName($table),
+            $params
+        );
     }
 
     public function getQuotedName($name)
     {
-        return '`' . str_replace('.', '`.`', $name) . '`';
+        $reserved = array('count\(', 'count\\s+\(');
+        if (preg_match('/('.implode('|', $reserved).').*/USsi', trim($name))) {
+            return $name;
+        } else {
+            return '`' . str_replace('.', '`.`', $name) . '`';
+        }
     }
 }
