@@ -129,7 +129,7 @@ class ZF1 extends \Codeception\Lib\Framework
         }
         \Zend_Layout::resetMvcInstance();
         \Zend_Controller_Action_HelperBroker::resetHelpers();
-        \Zend_Session::$_unitTestEnabled = true;
+        \Zend_Session::$_unitTestEnabled = false;
         $this->queries = 0;
         $this->time = 0;
     }
